@@ -11,7 +11,8 @@ from .conftest import ROOT
 
 def test_snapshot_matches_ea1_csv(dataset):
     expected = pd.read_csv(ROOT / "data" / "catalogo_tablets.csv", sep=";", decimal=",", dtype={"SKU": str})
-    pd.testing.assert_frame_equal(dataset, expected, check_dtype=False)
+    # CSV representa los vacíos como NaN; el HTML los entrega como None.
+    pd.testing.assert_frame_equal(dataset.astype("string").fillna(""), expected.astype("string").fillna(""))
     assert dataset.shape == (80, 15)
     assert validate_dataset(dataset, minimum_rows=50)["completeness_pct"] == 100.0
 
@@ -45,7 +46,7 @@ def test_export_roundtrip(dataset, tmp_path):
     destination = tmp_path / "nested" / "catalogo.csv"
     save_csv(dataset, destination)
     restored = pd.read_csv(destination, sep=";", decimal=",", dtype={"SKU": str})
-    pd.testing.assert_frame_equal(restored, dataset, check_dtype=False)
+    pd.testing.assert_frame_equal(restored.astype("string").fillna(""), dataset.astype("string").fillna(""))
 
 
 @pytest.mark.parametrize("kind", ["tampered", "escape", "empty"])
