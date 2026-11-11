@@ -1,0 +1,86 @@
+name: CI y despliegue de tablets
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tablets-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  quality:
+    name: Calidad y pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Instalar dependencias
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pip install -e .
+      - name: Revisar estilo
+        run: python -m ruff check .
+      - name: Pruebas y cobertura mínima del 85 por ciento
+        run: python -m pytest -q --cov=tablets_devops --cov-report=term-missing --cov-report=xml --junitxml=build/tests.xml
+      - name: Construir la publicación
+        run: python -m tablets_devops build --output build/site --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+      - name: Comprobar publicación por HTTP
+        run: python scripts/smoke.py --directory build/site --expected-records 80 --commit "$GITHUB_SHA"
+      - name: Guardar informes de pruebas
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results
+          path: |
+            build/tests.xml
+            coverage.xml
+          if-no-files-found: warn
+      - name: Guardar publicación comprobada
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-preview
+          path: build/site
+          include-hidden-files: true
+
+  deploy:
+    name: Publicar en GitHub Pages
+    needs: quality
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site-preview
+          path: build/site
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: build/site
+      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+        id: deployment
+      - name: Verificar el despliegue publicado
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: python scripts/smoke.py --url "$PAGE_URL" --expected-records 80 --commit "$GITHUB_SHA" --attempts 12
