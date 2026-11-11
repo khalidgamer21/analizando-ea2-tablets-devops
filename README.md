@@ -29,6 +29,8 @@ Las acciones se fijan a un SHA completo y los permisos de publicación se conced
 
 La configuración está en [cicd.yml](.github/workflows/cicd.yml).
 El detalle de roles, evidencia y recuperación está en [docs/flujo_devops.md](docs/flujo_devops.md).
+El ejercicio realizado, con la regresión detectada, su reversión y el conflicto
+resuelto, está en [docs/ejercicio_recuperacion.md](docs/ejercicio_recuperacion.md).
 
 ## Ejecutar las pruebas
 
