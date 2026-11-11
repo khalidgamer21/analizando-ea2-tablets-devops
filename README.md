@@ -95,7 +95,8 @@ publica únicamente los fragmentos necesarios para repetir el análisis.
 La metodología de scraping sigue siendo BeautifulSoup. La automatización usa la
 captura guardada para que las pruebas no dependan de la disponibilidad del comercio.
 
-## Trabajo individual
+## Trabajo Grupal
 
-El mismo estudiante representa los roles de desarrollo, revisión y operación.
-La actividad no implica la participación de otras personas ni revisiones externas.
+Marlon monterrosa Muñoz
+Yimy Antonio Mosquera Asprilla
+Rafael de Jesus González Ayala
