@@ -12,7 +12,7 @@ def limpiar(valor):
 def numero_precio(valor):
     try:
         valor = Decimal(str(valor))
-        return float(valor) if valor.is_finite() and valor > 0 else None
+        return float(valor) if valor.is_finite() and valor >= 0 else None
     except (InvalidOperation, ValueError):
         return None
 
